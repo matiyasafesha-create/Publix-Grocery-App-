@@ -1,6 +1,6 @@
 package org.yearup.data.mysql;
 
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Repository;
 import org.yearup.models.Product;
 import org.yearup.data.ProductDao;
 
@@ -10,7 +10,8 @@ import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
-@Component
+//@Component
+@Repository
 public class MySqlProductDao extends MySqlDaoBase implements ProductDao
 {
     public MySqlProductDao(DataSource dataSource)
@@ -60,11 +61,11 @@ public class MySqlProductDao extends MySqlDaoBase implements ProductDao
     }
 
     @Override
-    public List<Product> listByCategoryId(int categoryId)
+    public List <Product> listByCategoryId(int categoryId)
     {
         List<Product> products = new ArrayList<>();
 
-        String sql = "SELECT * FROM products " +
+        String sql = "SELECT product_id,name,price,category_id,description,subcategory,image_url,stock,featured FROM products " +
                     " WHERE category_id = ? ";
 
         try (Connection connection = getConnection())
@@ -88,7 +89,7 @@ public class MySqlProductDao extends MySqlDaoBase implements ProductDao
         return products;
     }
 
-
+    //completed
     @Override
     public Product getById(int productId)
     {
@@ -134,14 +135,14 @@ public class MySqlProductDao extends MySqlDaoBase implements ProductDao
             int rowsAffected = statement.executeUpdate();
 
             if (rowsAffected > 0) {
-                // Retrieve the generated keys
+
                 ResultSet generatedKeys = statement.getGeneratedKeys();
 
                 if (generatedKeys.next()) {
-                    // Retrieve the auto-incremented ID
+
                     int orderId = generatedKeys.getInt(1);
 
-                    // get the newly inserted category
+
                     return getById(orderId);
                 }
             }
@@ -154,7 +155,7 @@ public class MySqlProductDao extends MySqlDaoBase implements ProductDao
     }
 
     @Override
-    public void update(int productId, Product product)
+    public Product update(int productId, Product product)
     {
         String sql = "UPDATE products" +
                 " SET name = ? " +
@@ -180,31 +181,35 @@ public class MySqlProductDao extends MySqlDaoBase implements ProductDao
             statement.setBoolean(8, product.isFeatured());
             statement.setInt(9, productId);
 
-            statement.executeUpdate();
+            int rowsAffected = statement.executeUpdate();
+
+            if(rowsAffected == 0){
+                return null;
+            }
+
         }
         catch (SQLException e)
         {
             throw new RuntimeException(e);
         }
+
+        return product;
     }
+///  completed
+    public boolean delete(int productId) {
 
-    @Override
-    public void delete(int productId)
-    {
+        String query = "DELETE FROM products WHERE product_id = ?";
 
-        String sql = "DELETE FROM products " +
-                " WHERE product_id = ?;";
+        try (Connection connection = getConnection();
+             PreparedStatement ps = connection.prepareStatement(query)) {
 
-        try (Connection connection = getConnection())
-        {
-            PreparedStatement statement = connection.prepareStatement(sql);
-            statement.setInt(1, productId);
+            ps.setInt(1, productId);
 
-            statement.executeUpdate();
-        }
-        catch (SQLException e)
-        {
-            throw new RuntimeException(e);
+            int rowsAffected = ps.executeUpdate();
+            return rowsAffected > 0;
+
+        } catch (SQLException e) {
+            throw new RuntimeException("Error deleting product", e);
         }
     }
 

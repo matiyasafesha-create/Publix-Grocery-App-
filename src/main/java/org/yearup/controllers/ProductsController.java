@@ -5,6 +5,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
+import org.yearup.models.Category;
 import org.yearup.models.Product;
 import org.yearup.data.ProductDao;
 
@@ -12,11 +13,11 @@ import java.math.BigDecimal;
 import java.util.List;
 
 @RestController
-@RequestMapping("products")
+@RequestMapping("/products")
 @CrossOrigin
 public class ProductsController
 {
-    private ProductDao productDao;
+    private final ProductDao productDao;
 
     @Autowired
     public ProductsController(ProductDao productDao)
@@ -55,14 +56,19 @@ public class ProductsController
 
             return product;
         }
-        catch(Exception ex)
-        {
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Oops... our bad.");
+        catch (ResponseStatusException e) {
+            throw e;
         }
+        catch (Exception ex) {
+            throw new ResponseStatusException(
+                    HttpStatus.INTERNAL_SERVER_ERROR,
+                    "Oops My bad."
+            );
+    }
     }
 
     @PostMapping()
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     public Product addProduct(@RequestBody Product product)
     {
         try
@@ -76,35 +82,59 @@ public class ProductsController
     }
 
     @PutMapping("{id}")
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
-    public void updateProduct(@PathVariable int id, @RequestBody Product product)
+    @PreAuthorize("hasRole('ADMIN')")
+    public  Product updateProduct(@PathVariable int id, @RequestBody Product product)
     {
-        try
-        {
-            productDao.create(product);
+        try {
+            Product updatedProduct = productDao.update(id, product);
+
+            if (updatedProduct == null) {
+                throw new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Product not found"
+                );
+            }
+
+            return updatedProduct;
+
+        } catch (ResponseStatusException e) {
+
+            throw e;
+
+        } catch (Exception e) {
+            throw new ResponseStatusException(
+                    HttpStatus.INTERNAL_SERVER_ERROR,
+                    "Oops... ERROR updating Product. Try again.",
+                    e
+            );
         }
-        catch(Exception ex)
-        {
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Oops... our bad.");
-        }
+
     }
 
     @DeleteMapping("{id}")
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     public void deleteProduct(@PathVariable int id)
     {
-        try
-        {
-            var product = productDao.getById(id);
+        // delete the category by id
+        try {
+            boolean deleted = productDao.delete(id);
 
-            if(product == null)
-                throw new ResponseStatusException(HttpStatus.NOT_FOUND);
+            if (!deleted) {
+                throw new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "product not found"
+                );
+            }
 
-            productDao.delete(id);
-        }
-        catch(Exception ex)
-        {
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Oops... our bad.");
+        } catch (ResponseStatusException e) {
+            throw e;
+
+        } catch (Exception e) {
+            throw new ResponseStatusException(
+                    HttpStatus.INTERNAL_SERVER_ERROR,
+                    "Error deleting product",
+                    e
+            );
         }
     }
 }
