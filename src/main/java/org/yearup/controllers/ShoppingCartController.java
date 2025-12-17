@@ -21,7 +21,7 @@ import java.util.List;
 // only logged in users should have access to these actions
 
 @RestController
-@RequestMapping("/carts")
+@RequestMapping("/cart")
 @PreAuthorize("isAuthenticated()")
 @CrossOrigin
 public class ShoppingCartController
